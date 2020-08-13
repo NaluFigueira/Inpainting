@@ -70,15 +70,90 @@ mat get_conditioning_points(mat &mask) {
 }
 
 int main(int argc, char** argv) {
-  mat mask;
+  mat mask, input;
 
+  input.load("input.pgm", pgm_binary);
   mask.load("mask.pgm", pgm_binary);
 
-  mat result = get_conditioning_points(mask);
+  mat indc = get_conditioning_points(mask);
 
-    
+  int M = input.n_rows, N = input.n_cols;
+  mat one_minus_mask = zeros(M,N);
+  for(int i = 0; i < M; i++) {
+    for(int j = 0; j < N; j++) {
+      input(i,j) = round(input(i,j)/255);
+      if(mask(i,j) == 255) {
+        one_minus_mask(i,j) = 0;
+      }
+      else one_minus_mask(i,j) = 1;
+    }
+  }
 
-  result.save("output_image.pgm", pgm_binary);
+  mat texture_image = input%one_minus_mask;
+  mat m = zeros(1,1);
+  mat abs_mask = abs(mask);
+  mat maskrgb = zeros(M, N);
+
+  for(int i = 0; i < M; i++) {
+    for(int j = 0; j < N; j++) {
+      if(abs_mask(i,j) > 0)
+        maskrgb(i,j) = round(abs_mask(i,j)/255);
+    }
+  }
+
+  sp_mat not_maskrgb = zeros<sp_mat>(M, N);
+
+  for(int i = 0; i < M; i++) {
+    for(int j = 0; j < N; j++) {
+      if(maskrgb(i,j) == 0)
+        not_maskrgb(i,j) = 1;
+      else
+        not_maskrgb(i,j) = 0;
+    }
+  }
+
+  double k = sqrt(1.0/not_maskrgb.n_nonzero);
+
+  vec input_mask = zeros(M*N);
+
+  int w = 0;
+
+  for(int j = 0; j < N; j++) {
+    for(int i = 0; i < M; i++) {
+      if(maskrgb(i,j) == 0) {
+        input_mask(w) = texture_image(i,j);
+        w++;
+      }
+    }
+  }
+
+
+  double mask_mean = mean(input_mask);
+
+  vec input_mask_final = zeros(M*N);
+
+  for(int i = 0; i < M*N; i++) {
+      input_mask_final(i) = input_mask(i) - mask_mean;
+  }
+
+
+  mat new_value = zeros(M,N);
+
+  for(int i = 0; i < N*M; i++) {
+    new_value(i) = k*input_mask_final(i);
+  }
+
+  mat tc = zeros(M,N);
+
+  for(int i = 0; i < M; i++) {
+    for(int j = 0; j < N; j++) {
+       if(maskrgb(i,j) == 0) {
+         tc(i, j) = new_value(i,j);
+         cout << "tc(" << i << "," << j << ")=" << tc(i,j) << "\n";
+       }
+    }
+  }
+
 
   return 0;
 }
