@@ -3,6 +3,8 @@
     ".sequelizerc": "javascript",
     ".stylelintrc": "json",
     ".prettierrc": "json",
-    "armadillo": "cpp"
+    "armadillo": "cpp",
+    "functional": "cpp",
+    "iostream": "cpp"
   }
 }
